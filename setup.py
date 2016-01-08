@@ -20,7 +20,7 @@ with codecs.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='namedstruct',
 
-    version='1.0.0a2',
+    version=open('version.txt').read().strip(),
 
     description='namedstruct encapsulates struct.unpack() with results accessed by name',
     long_description=long_description,
