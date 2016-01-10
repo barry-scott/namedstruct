@@ -17,6 +17,17 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+def getDevStatusFromVersion():
+    version = open('version.txt').read().strip()
+    if 'a' in version:
+        return 'Development Status :: 3 - Alpha'
+
+    elif 'b' in version:
+        return 'Development Status :: 4 - Beta'
+
+    else:
+        return 'Development Status :: 5 - Production/Stable'
+
 setup(
     name='namedstruct',
 
@@ -41,7 +52,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        getDevStatusFromVersion(),
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
