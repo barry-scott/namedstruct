@@ -17,10 +17,11 @@ __all__ = ['namedstruct']
 #
 class namedstruct:
     # holds the field definitions
-    # use unpack to create an instance of namedstructresult that holds the decoded data
+    # use unpack to create an instance of namedstructunpacked that holds the decoded data
     def __init__( self, name, field_info ):
         self.__name = name
         self.__field_name_to_getter = {}
+        self.__name_to_index = {}
         self.__all_fmt = []
 
         all_fmt = []
@@ -34,8 +35,8 @@ class namedstruct:
             except struct.error as e:
                 raise ValueError( 'index %d name %r fmt %r %s' % (index, name, fmt, e) )
 
-            repeat = self.getRepeatCount( fmt )
-            self.__all_fmt.append( (fmt, name) )
+            repeat = self.__getRepeatCount( fmt )
+            self.__all_fmt.append( (fmt, name, repeat) )
 
             all_fmt.append( fmt )
             if name != '' :
@@ -45,12 +46,13 @@ class namedstruct:
                     getter = operator.itemgetter( slice( index, index + repeat ) )
 
                 self.__field_name_to_getter[ name ] = getter
+                self.__name_to_index[ name ] = (fmt, index, index + repeat)
 
             index += repeat
 
         self.__struct_fmt_string = ''.join( all_fmt )
 
-    def getRepeatCount( self, fmt ):
+    def __getRepeatCount( self, fmt ):
         if fmt[0] in '@=<>!':
             fmt = fmt[1:]
 
@@ -65,12 +67,20 @@ class namedstruct:
         return int(repeat)
 
     def unpack( self, encoded_buffer ):
-        return namedstructresult( 
+        return namedstructunpacked( 
                     self.__name,
                     self.__field_name_to_getter,
                     self.__all_fmt,
                     self.__struct_fmt_string,
                     encoded_buffer )
+
+    def packer( self ):
+        return namedstructpacker(
+                    self.__name,
+                    self.__name_to_index,
+                    self.__all_fmt,
+                    self.__struct_fmt_string,
+                    )
 
     def __repr__( self ):
         return 'namedstruct<name:%s fmt:%s>' % (self.__name, self.__struct_fmt_string)
@@ -78,7 +88,7 @@ class namedstruct:
     def __len__( self ):
         return struct.calcsize( self.__struct_fmt_string )
 
-class namedstructresult:
+class namedstructunpacked:
     def __init__( self, name, field_name_to_getter, all_fmt, struct_fmt_string, encoded_buffer ):
         self.__name = name
         self.__field_name_to_getter = field_name_to_getter
@@ -90,7 +100,7 @@ class namedstructresult:
         self.__decoded_buffer = struct.unpack( self.__struct_fmt_string, self.__encoded_buffer )
 
     def __repr__( self ):
-        return ('namedstructresult<name:%s fmt:%s size:%d>%r' %
+        return ('namedstructunpacked<name:%s fmt:%s size:%d>%r' %
                 (self.__name, self.__struct_fmt_string, len(self), self.__decoded_buffer))
 
     def dump( self, write ):
@@ -108,7 +118,7 @@ class namedstructresult:
                 all_parts = []
 
         offset = 0
-        for fmt, name in self.__all_fmt:
+        for fmt, name, repeat in self.__all_fmt:
             if name == '':
                 value = '-anonymous-'
 
@@ -134,6 +144,67 @@ class namedstructresult:
     def __len__( self ):
         return len( self.__encoded_buffer )
 
+class namedstructpacker(object):
+    def __init__( self, name, name_to_index, all_fmt, struct_fmt_string ):
+        self.__name = name
+        self.__name_to_index = name_to_index
+        self.__all_fmt = all_fmt
+        self.__struct_fmt_string = struct_fmt_string
+
+        self.__values = []
+        for name, fmt, repeat in self.__all_fmt:
+            if repeat:
+                self.__values.extend( [0]*repeat )
+            else:
+                if fmt.endswith('s'):
+                    self.__values.append( b'' )
+                else:
+                    self.__values.append( 0 )
+
+    def __repr__( self ):
+        return ('namedstructpacker<name:%s fmt:%s size:%d>%r' %
+                (self.__name, self.__struct_fmt_string, len(self)))
+
+    def __getattr__( self, name ):
+        if name.startswith( '_namedstructpacker__' ):
+            return self.__dict__[ name ]
+
+        elif name in self.__name_to_index:
+            fmt, lo, hi = self.__name_to_index[ name ]
+
+            if lo+1 == hi:
+                return self.__values[ lo ]
+
+            else:
+                return self.__values[lo:hi]
+
+        else:
+            raise AttributesError( name )
+            
+    def __setattr__( self, name, value ):
+        if name.startswith( '_namedstructpacker__' ):
+            self.__dict__[ name ] = value
+
+        elif name in self.__name_to_index:
+            fmt, lo, hi = self.__name_to_index[ name ]
+
+            if fmt[-1] == 's' and type( value ) is not bytes:
+                raise ValueError( '%s expecting bytes not %r' % (name, value) )
+
+            if lo+1 == hi:
+                self.__values[ lo ] = value
+
+            else:
+                if len(value) != (hi-lo):
+                    raise AttributeError( name )
+
+                self.__values[lo:hi] = value
+        else:
+            raise AttributeError( name )
+
+    def pack( self ):
+        return struct.pack( *[self.__struct_fmt_string] + self.__values )
+
 if __name__ == '__main__':
     ns = namedstruct( 'onetwo', 'H:first 1H:first2 2b: 2B:second 6s:third' )
 
@@ -146,3 +217,12 @@ if __name__ == '__main__':
     print( 'third', repr( data.third ) )
     data.dump( print )
 
+    packer = ns.packer()
+    packer.first = 19
+    packer.first2 = 23
+    packer.second = (2,5)
+    packer.third = b'xyz'
+
+    print( 'second: %r' % (packer.second,) )
+
+    print( 'buf %r' % (packer.pack(),) )
