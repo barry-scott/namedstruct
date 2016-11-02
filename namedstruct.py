@@ -196,7 +196,7 @@ class namedstructpacker(object):
 
         else:
             raise AttributesError( name )
-            
+
     def __setattr__( self, name, value ):
         if name.startswith( '_namedstructpacker__' ):
             self.__dict__[ name ] = value
