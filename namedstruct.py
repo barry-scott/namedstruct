@@ -107,15 +107,31 @@ class namedstructunpacked:
         write( 'Dump of struct "%s"' % (self.__name,) )
 
         all_parts = []
+        all_chars = []
         for index, byte in enumerate( self.__encoded_buffer ):
             if index%16 == 0:
                 all_parts.append( '%8.8x' % (index,) )
             all_parts.append( '%2.2x' % (byte, ) )
+            if ord(' ') <= byte < 0x7f:
+                all_chars.append( chr(byte) )
+            else:
+                all_chars.append( ' ' )
 
             if index%16 == 15:
                 all_parts.reverse()
+                all_parts.append( ' %s' % (''.join( all_chars),) )
                 write( ' '.join( all_parts ) )
                 all_parts = []
+                all_chars = []
+
+        if index%16 != 15:
+            while index%16 != 15:
+                all_parts.append( '  ' )
+                index += 1
+
+            all_parts.reverse()
+            all_parts.append( ' %s' % (''.join( all_chars),) )
+            write( ' '.join( all_parts ) )
 
         offset = 0
         for fmt, name, repeat in self.__all_fmt:
