@@ -27,6 +27,11 @@ Classes
 
         Unpack the *bytes* into a namestruct.namestructresults object used to access the decoded fields.
 
+    packer( from_unpacked=None )
+
+        Return a namedstructpacker object that can be used to pack the fields into a buffer.
+        The optional from_unpacked will initialise the fields from a previously unpacked
+        buffer.
 
   class namedstruct.namedstructresults
 
@@ -37,6 +42,20 @@ Classes
     dump( writer )
 
        Using the writer function to output a formatted dump of the whole struct.
+
+  class namedstruct.namedstructpacker
+
+    .*name* = value
+
+        Assign a value to the named field
+
+    init_from( from_unpacked )
+
+        Assign each field from a previous unpacked buffer's namedstructresults.
+
+    pack()
+
+        Pack the fields and return the bytes buffer.
 
 Example
 -------

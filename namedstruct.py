@@ -67,20 +67,24 @@ class namedstruct:
         return int(repeat)
 
     def unpack( self, encoded_buffer ):
-        return namedstructunpacked( 
+        return namedstructunpacked(
                     self.__name,
                     self.__field_name_to_getter,
                     self.__all_fmt,
                     self.__struct_fmt_string,
                     encoded_buffer )
 
-    def packer( self ):
-        return namedstructpacker(
+    def packer( self, unpacked_data=None ):
+        nsp = namedstructpacker(
                     self.__name,
                     self.__name_to_index,
                     self.__all_fmt,
                     self.__struct_fmt_string,
                     )
+        if unpacked_data is not None:
+            nsp.init_from( unpacked_data )
+
+        return nsp
 
     def __repr__( self ):
         return 'namedstruct<name:%s fmt:%s>' % (self.__name, self.__struct_fmt_string)
@@ -103,8 +107,11 @@ class namedstructunpacked:
         return ('namedstructunpacked<name:%s fmt:%s size:%d>%r' %
                 (self.__name, self.__struct_fmt_string, len(self), self.__decoded_buffer))
 
-    def dump( self, write ):
-        write( 'Dump of struct "%s"' % (self.__name,) )
+    def dump( self, write, comment='' ):
+        if comment != '':
+            comment = ' - ' + comment
+
+        write( 'Dump of struct "%s"%s' % (self.__name, comment) )
 
         all_parts = []
         all_chars = []
@@ -181,6 +188,10 @@ class namedstructpacker(object):
         return ('namedstructpacker<name:%s fmt:%s size:%d>%r' %
                 (self.__name, self.__struct_fmt_string, len(self)))
 
+    def init_from( self, unpacked_data ):
+        for name in self.__name_to_index:
+            setattr( self, name, getattr( unpacked_data, name ) )
+
     def __getattr__( self, name ):
         if name.startswith( '_namedstructpacker__' ):
             return self.__dict__[ name ]
@@ -218,8 +229,17 @@ class namedstructpacker(object):
         else:
             raise AttributeError( name )
 
+    def dump( self, write ):
+        write( 'Dump of packer "%s"' % (self.__name,) )
+        for name in self.__name_to_index:
+            fmt, lo, hi = self.__name_to_index[ name ]
+            print( '%r[%d:%d] = %r' % (fmt, lo, hi, self.__values[lo:hi]) )
+
     def pack( self ):
         return struct.pack( *[self.__struct_fmt_string] + self.__values )
+
+    def __len__( self ):
+        return struct.calcsize( self.__struct_fmt_string )
 
 if __name__ == '__main__':
     ns = namedstruct( 'onetwo', 'H:first 1H:first2 2b: 2B:second 6s:third' )

@@ -2,9 +2,9 @@ setlocal
 if "%1" == "32" (
     set PY_VER=3.5-32
 ) else if "%1" == "64" (
-    set PY_VER=3.5
+    set PY_VER=3.7
 ) else if "%1" == "" (
-    set PY_VER=3.5
+    set PY_VER=3.7
 ) else (
     echo Error: %%1 must be 32 or 64
     goto :eof
