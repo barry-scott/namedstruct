@@ -1,10 +1,8 @@
 Module namedstruct
-------------------
 
-namedstruct encapsulates struct.unpack() with results accessed by name
+namedstruct encapsulates struct.unpack() and struct.pack() with results accessed by name.
 
 Classes
--------
 
   class namedstruct.namedstruct
 
@@ -58,7 +56,6 @@ Classes
         Pack the fields and return the bytes buffer.
 
 Example
--------
 ::
 
   import namedstruct
