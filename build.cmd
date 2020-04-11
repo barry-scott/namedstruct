@@ -2,5 +2,5 @@ rmdir /s /q build
 rmdir /s /q dist
 rmdir /s /q namedstruct.egg-info
 
-py -3.7 setup.py sdist bdist_wheel %1 %2 %3 %4
+py -3.8 setup.py sdist bdist_wheel %1 %2 %3 %4
 dir /s /b dist\*.whl
