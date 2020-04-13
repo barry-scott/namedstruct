@@ -1,12 +1,8 @@
 setlocal
-if "%1" == "32" (
-    set PY_VER=3.5-32
-) else if "%1" == "64" (
-    set PY_VER=3.8
-) else if "%1" == "" (
-    set PY_VER=3.8
+if not  "%1" == "" (
+    set PY_VER=%1
 ) else (
-    echo Error: %%1 must be 32 or 64
+    echo Error: %%1 must be python version: e.g. 3.7 3.6-32
     goto :eof
 )
 
