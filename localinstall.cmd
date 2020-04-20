@@ -9,6 +9,6 @@ if not  "%1" == "" (
 for %%i in (dist\*.whl) do set WHEEL=%%~fi
 set PYTHONPATH=
 cd %userprofile%
-py -%PY_VER% -m pip install -U %WHEEL%
+py -%PY_VER% -m pip install --user --upgrade %WHEEL%
 
 endlocal
